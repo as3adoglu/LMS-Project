@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus | Secure Entry</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { 
+            --bg: #050505; 
+            --card: #111111; 
+            --primary: #6366f1; 
+            --border: rgba(255,255,255,0.08); 
+            --text: #ffffff; 
+            --text-dim: #a1a1aa; 
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        
+        body { 
+            background: var(--bg); 
+            color: var(--text); 
+            height: 100vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            overflow: hidden; 
+        }
+        
+        /* Background decorative blur */
+        .blur-bg { 
+            position: absolute; 
+            width: 400px; 
+            height: 400px; 
+            background: var(--primary); 
+            filter: blur(120px); 
+            border-radius: 50%; 
+            opacity: 0.15; 
+            z-index: -1; 
+        }
+        
+        .container { 
+            width: 100%; 
+            max-width: 400px; 
+            padding: 40px; 
+            background: var(--card); 
+            border: 1px solid var(--border); 
+            border-radius: 28px; 
+            backdrop-filter: blur(10px); 
+            text-align: center; 
+        }
+
+        /* FIXED LOGO SECTION */
+        .logo { 
+            font-size: 1.8rem; 
+            font-weight: 800; 
+            letter-spacing: -1px; 
+            margin-bottom: 30px; 
+            /* Fallback color if gradient fails */
+            color: #ffffff; 
+            background: linear-gradient(to bottom, #ffffff, #71717a);
+            /* Standard property */
+            background-clip: text;
+            /* Vendor prefixes for cross-browser support */
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .input-wrapper { text-align: left; margin-bottom: 18px; }
+        
+        label { 
+            font-size: 0.75rem; 
+            font-weight: 600; 
+            color: var(--text-dim); 
+            text-transform: uppercase; 
+            margin-bottom: 8px; 
+            display: block; 
+        }
+        
+        input { 
+            width: 100%; 
+            padding: 14px 18px; 
+            background: #18181b; 
+            border: 1px solid var(--border); 
+            border-radius: 14px; 
+            color: white; 
+            outline: none; 
+            transition: 0.3s; 
+        }
+        
+        input:focus { 
+            border-color: var(--primary); 
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); 
+        }
+        
+        .btn { 
+            width: 100%; 
+            padding: 14px; 
+            background: white; 
+            color: black; 
+            border-radius: 14px; 
+            border: none; 
+            font-weight: 700; 
+            cursor: pointer; 
+            transition: 0.2s; 
+            margin-top: 10px; 
+        }
+        
+        .btn:hover { 
+            background: #e4e4e7; 
+            transform: translateY(-2px); 
+        }
+        
+        .toggle { 
+            margin-top: 25px; 
+            font-size: 0.85rem; 
+            color: var(--text-dim); 
+        }
+        
+        .toggle span { 
+            color: white; 
+            cursor: pointer; 
+            font-weight: 600; 
+            text-decoration: underline; 
+        }
+    </style>
+</head>
+<body>
+    <div class="blur-bg"></div>
+    <div class="container">
+        <div class="logo">NEXUS.LMS</div>
+        
+        <form id="authForm" onsubmit="return false;">
+            <div id="user-field" class="input-wrapper" style="display:none">
+                <label>Username</label>
+                <input type="text" id="username" placeholder="Your name">
+            </div>
+            
+            <div class="input-wrapper">
+                <label>Email</label>
+                <input type="email" id="email" placeholder="name@example.com" required>
+            </div>
+            
+            <div class="input-wrapper">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="••••••••" required>
+            </div>
+            
+            <button class="btn" onclick="submitForm()" id="main-btn">Sign In</button>
+        </form>
+        
+        <p class="toggle" id="toggle-p">New here? <span onclick="toggleMode()">Create account</span></p>
+    </div>
+
+    <script>
+        let isLogin = true;
+
+        function toggleMode() {
+            isLogin = !isLogin;
+            const userField = document.getElementById("user-field");
+            const mainBtn = document.getElementById("main-btn");
+            const toggleP = document.getElementById("toggle-p");
+
+            userField.style.display = isLogin ? "none" : "block";
+            mainBtn.innerText = isLogin ? "Sign In" : "Register";
+            toggleP.innerHTML = isLogin 
+                ? 'New here? <span onclick="toggleMode()">Create account</span>' 
+                : 'Have an account? <span onclick="toggleMode()">Sign In</span>';
+        }
+
+        async function submitForm() {
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            const username = document.getElementById("username").value;
+
+            if(!email || !password) {
+                alert("Please provide both email and password.");
+                return;
+            }
+
+            const url = isLogin 
+                ? "http://localhost:8080/api/users/login" 
+                : "http://localhost:8080/api/users";
+            
+            const body = isLogin 
+                ? { email, password } 
+                : { email, password, username, role: "USER" };
+
+            try {
+                const res = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body)
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if(isLogin) {
+                        localStorage.setItem("userToken", data.token);
+                        localStorage.setItem("role", data.role);
+                        localStorage.setItem("username", data.username);
+                        localStorage.setItem("userId", data.id);
+                        window.location.href = "index.html";
+                    } else {
+                        alert("Account created successfully! Please sign in.");
+                        toggleMode();
+                    }
+                } else {
+                    // Try to get error message from server
+                    const errorData = await res.json();
+                    alert("Error: " + (errorData.message || "Authentication failed"));
+                }
+            } catch (err) {
+                console.error("Connection error:", err);
+                alert("Cannot connect to server. Ensure your Spring Boot backend is running on port 8080.");
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus | Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --bg: #000000; --sidebar: #09090b; --card: #09090b; --border: #27272a; --primary: #6366f1; --success: #10b981; --danger: #ef4444; --text: #fafafa; --text-dim: #71717a; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+
+        /* Sidebar */
+        .sidebar { width: 280px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 32px; display: flex; flex-direction: column; position: fixed; height: 100vh; }
+        .nav-item { padding: 12px 16px; border-radius: 12px; color: var(--text-dim); cursor: pointer; display: flex; align-items: center; gap: 12px; margin-bottom: 6px; transition: 0.2s; font-weight: 500; }
+        .nav-item:hover, .nav-item.active { background: #18181b; color: white; }
+        .nav-item i { width: 20px; }
+
+        /* Profile Mini-Card */
+        .profile { background: #18181b; padding: 20px; border-radius: 20px; border: 1px solid var(--border); margin-bottom: 30px; }
+        .debt-tag { font-size: 0.7rem; font-weight: 700; padding: 4px 10px; border-radius: 100px; display: inline-block; margin-top: 10px; }
+
+        /* Main Content */
+        .main { margin-left: 280px; flex: 1; padding: 48px; max-width: 1200px; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 40px; }
+        .stat-box { background: var(--card); border: 1px solid var(--border); padding: 24px; border-radius: 24px; }
+        .stat-box h2 { font-size: 2rem; font-weight: 700; margin-top: 8px; }
+
+        .dashboard-split { display: grid; grid-template-columns: 1.8fr 1fr; gap: 24px; margin-bottom: 40px; }
+        .card { background: var(--card); border: 1px solid var(--border); padding: 32px; border-radius: 28px; }
+        
+        /* Interactive Elements */
+        input, select { width: 100%; padding: 14px; background: #18181b; border: 1px solid var(--border); border-radius: 14px; color: white; margin-bottom: 15px; outline: none; }
+        .btn { padding: 14px 24px; border-radius: 14px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; background: white; color: black; }
+        .btn:hover { background: #d4d4d8; transform: translateY(-2px); }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { text-align: left; padding: 15px; color: var(--text-dim); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); }
+        td { padding: 20px 15px; border-bottom: 1px solid #18181b; font-size: 0.9rem; }
+        
+        .admin-only { display: none; }
+        .badge { padding: 5px 12px; border-radius: 8px; font-size: 0.7rem; font-weight: 700; }
+        .b-loan { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+        .b-ok { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+    </style>
+</head>
+<body>
+    <nav class="sidebar">
+        <div style="font-size: 1.5rem; font-weight: 800; margin-bottom: 40px;">NEXUS<span style="color: var(--primary);">.</span></div>
+        
+        <div class="profile">
+            <p id="display-role" style="font-size: 0.65rem; color: var(--text-dim); letter-spacing: 1px; font-weight: 700;">STUDENT</p>
+            <h4 id="display-username" style="margin-top: 4px;">User</h4>
+            <div id="debt-status" class="debt-tag">Checking...</div>
+            <button id="pay-btn" class="btn" style="display:none; padding:6px; font-size: 0.7rem; margin-top:10px; width:100%" onclick="handlePayDebt()">Clear Fines</button>
+        </div>
+
+        <div class="nav-item active"><i class="fas fa-columns"></i> Overview</div>
+        <div class="nav-item admin-only" onclick="scrollToId('admin-sec')"><i class="fas fa-shield-halved"></i> Management</div>
+        <div class="nav-item admin-only" onclick="scrollToId('book-sec')"><i class="fas fa-plus"></i> Library Catalog</div>
+        
+        <div class="nav-item" style="margin-top: auto; color: var(--danger);" onclick="logout()"><i class="fas fa-power-off"></i> Logout</div>
+    </nav>
+
+    <main class="main">
+        <div class="grid">
+            <div class="stat-box"><p style="color: var(--text-dim);">Books Catalog</p><h2 id="stat-books">0</h2></div>
+            <div class="stat-box"><p style="color: var(--text-dim);">Community</p><h2 id="stat-users">0</h2></div>
+            <div class="stat-box"><p style="color: var(--text-dim);">Current Loans</p><h2 id="stat-active">0</h2></div>
+        </div>
+
+        <div class="dashboard-split">
+            <div class="card">
+                <h3 style="margin-bottom: 20px;">Library Analytics</h3>
+                <div style="height: 250px;"><canvas id="categoryChart"></canvas></div>
+            </div>
+            <div class="card">
+                <h3 style="margin-bottom: 20px;">Issue Book</h3>
+                <div class="admin-only"><label>Target Student</label><select id="borrowUserSelect"></select></div>
+                <label>Select Work</label><select id="borrowBookSelect"></select>
+                <button class="btn" onclick="borrowBook()" style="width:100%; background: var(--primary); color: white;">Confirm Loan</button>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 40px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>Transaction History</h3>
+                <input type="text" id="transactionSearch" placeholder="Search logs..." style="width: 250px; margin-bottom: 0;" onkeyup="filterTransactions()">
+            </div>
+            <table>
+                <thead><tr><th>ID</th><th>Borrower</th><th>Book</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="transactions-table"></tbody>
+            </table>
+        </div>
+
+        <div id="admin-sec" class="card admin-only" style="margin-bottom: 40px;">
+            <h3>User Governance</h3>
+            <table>
+                <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Debt</th><th>Access</th><th>Control</th></tr></thead>
+                <tbody id="users-table"></tbody>
+            </table>
+        </div>
+
+        <div id="book-sec" class="card admin-only">
+            <h3>Catalog Editor</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+                <div>
+                    <label>Title</label><input type="text" id="bookTitle">
+                    <label>Inventory</label><input type="number" id="bookStock">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <select id="authorSelect"></select>
+                        <select id="categorySelect"></select>
+                    </div>
+                    <button class="btn" onclick="addBook()" style="width:100%">Update Catalog</button>
+                </div>
+                <div style="background: #111111; padding: 25px; border-radius: 20px; border: 1px solid var(--border);">
+                    <label>Quick Register Author</label>
+                    <input type="text" id="authorName" placeholder="Full name">
+                    <button class="btn" style="background: #27272a; color: white; width:100%" onclick="addAuthor()">Add Author</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+    <script>
+        function scrollToId(id) { document.getElementById(id).scrollIntoView({behavior: 'smooth'}); }
+        if (!localStorage.getItem("userToken")) window.location.href = "login.html";
+        function logout() { localStorage.clear(); window.location.href = "login.html"; }
+    </script>
+</body>
+</html>
